@@ -691,3 +691,354 @@ function get_message_callback(extra, success, result)
 				local user = "user#id"..group_owner
 				channel_demote(channel_id, user, ok_cb, false)
 			end 
+local user_id = "user#id"..result.from.peer_id
+			channel_set_admin(channel_id, user_id, ok_cb, false)
+			data[tostring(result.to.peer_id)]['set_owner'] = tostring(result.from.peer_id)
+			save_data(_config.moderation.data, data)
+			savelog(msg.to.id, name_log.." ["..msg.from.id.."] set: ["..result.from.peer_id.."] as owner by reply")
+			if result.from.username then
+				text = "@"..result.from.username.." [ "..result.from.peer_id.." ] ولآَ يـهمَكَ تمَ ✔️ رفعـكَ مـديـر 👍 سفنجهَ كلـبيَ 💔"
+			else
+				text = "[ "..result.from.peer_id.." ] ولآَ يـهمَكَ تمَ ✔️ رفعـكَ مـديـر 👍 سفنجهَ كلـبيَ 💔"
+			end
+			send_large_msg(channel_id, text)
+		end
+	elseif get_cmd == "رفع ادمن" then
+		local receiver = result.to.peer_id
+		local full_name = (result.from.first_name or '')..' '..(result.from.last_name or '')
+		local member_name = full_name:gsub("‮", "")
+		local member_username = member_name:gsub("_", " ")
+		if result.from.username then
+			member_username = '@'.. result.from.username
+		end
+		local member_id = result.from.peer_id
+		if result.to.peer_type == 'channel' then
+		savelog(msg.to.id, name_log.." ["..msg.from.id.."] promoted mod: @"..member_username.."["..result.from.peer_id.."] by reply")
+		promote2("channel#id"..result.to.peer_id, member_username, member_id)
+	    --channel_set_mod(channel_id, user, ok_cb, false)
+		end
+	elseif get_cmd == "تنزيل ادمن" then
+		local full_name = (result.from.first_name or '')..' '..(result.from.last_name or '')
+		local member_name = full_name:gsub("‮", "")
+		local member_username = member_name:gsub("_", " ")
+    if result.from.username then
+		member_username = '@'.. result.from.username
+    end
+		local member_id = result.from.peer_id
+		--local user = "user#id"..result.peer_id
+		savelog(msg.to.id, name_log.." ["..msg.from.id.."]  تنزيل ادمن: @"..member_username.."["..user_id.."] by reply")
+		demote2("channel#id"..result.to.peer_id, member_username, member_id)
+		--channel_demote(channel_id, user, ok_cb, false)
+	elseif get_cmd == 'mute_user' then
+		if result.service then
+			local action = result.action.type
+			if action == 'chat_add_user' or action == 'chat_del_user' or action == 'chat_rename' or action == 'chat_change_photo' then
+				if result.action.user then
+					user_id = result.action.user.peer_id
+				end
+			end
+			if action == 'chat_add_user_link' then
+				if result.from then
+					user_id = result.from.peer_id
+				end
+			end
+		else
+			user_id = result.from.peer_id
+		end
+		local receiver = extra.receiver
+		local chat_id = msg.to.id
+		print(user_id)
+		print(chat_id)
+		if is_muted_user(chat_id, user_id) then
+			unmute_user(chat_id, user_id)
+			send_large_msg(receiver, "["..user_id.."] 😉 جراره ❤️  راح الكتم منك يلا دردش 💔")
+		elseif is_admin1(msg) then
+			mute_user(chat_id, user_id)
+			send_large_msg(receiver, " ["..user_id.."] ✋🏻عميت على نفسك تم كتمك 🤐")
+		end
+	end
+end
+-- End by reply actions
+
+--By ID actions
+local function cb_user_info(extra, success, result)
+	local receiver = extra.receiver
+	local user_id = result.peer_id
+	local get_cmd = extra.get_cmd
+	local data = load_data(_config.moderation.data)
+	--[[if get_cmd == "setadmin" then
+		local user_id = "user#id"..result.peer_id
+		channel_set_admin(receiver, user_id, ok_cb, false)
+		if result.username then
+			text = "@"..result.username.." has been set as an admin"
+		else
+			text = "[ "..result.peer_id.." ] has been set as an admin"
+		end
+			send_large_msg(receiver, text)]]
+	if get_cmd == "تنزيل اداري" then
+		if is_admin2(result.peer_id) then
+			return send_large_msg(receiver, "لآ تمسَلت بكَيفكَ لآَ يمكَنَكَ تنزَيل أدأريَ 😂")
+		end
+		local user_id = "user#id"..result.peer_id
+		channel_demote(receiver, user_id, ok_cb, false)
+		if result.username then
+			text = "@"..result.username.." خطـيهَ تمَ تنزيله 😢 منْ ألآَدأرهَ لتبجي جرَأَرهَ كلـبيَ 💔"
+			send_large_msg(receiver, text)
+		else
+			text = "[ "..result.peer_id.." ] خطـيهَ تمَ تنزيله 😢 منْ ألآَدأرهَ لتبجي جرَأَرهَ كلـبيَ 💔"
+			send_large_msg(receiver, text)
+		end
+	elseif get_cmd == "رفع ادمن" then
+		if result.username then
+			member_username = "@"..result.username
+		else
+			member_username = string.gsub(result.print_name, '_', ' ')
+		end
+		promote2(receiver, member_username, user_id)
+	elseif get_cmd == "تنزيل ادمن" then
+		if result.username then
+			member_username = "@"..result.username
+		else
+			member_username = string.gsub(result.print_name, '_', ' ')
+		end
+		demote2(receiver, member_username, user_id)
+	end
+end
+
+-- Begin resolve username actions
+local function callbackres(extra, success, result)
+  local member_id = result.peer_id
+  local member_username = "@"..result.username
+  local get_cmd = extra.get_cmd
+	if get_cmd == "الايدي" then
+		local user = result.peer_id
+		local name = string.gsub(result.print_name, "_", " ")
+		local channel = 'channel#id'..extra.channelid
+		send_large_msg(channel, user..'\n'..name)
+		return user
+	elseif get_cmd == "ايدي" then
+		local user = result.peer_id
+		local channel = 'channel#id'..extra.channelid
+		send_large_msg(channel, user)
+		return user
+  elseif get_cmd == "invite" then
+    local receiver = extra.channel
+    local user_id = "user#id"..result.peer_id
+    channel_invite(receiver, user_id, ok_cb, false)
+	--[[elseif get_cmd == "channel_block" then
+		local user_id = result.peer_id
+		local channel_id = extra.channelid
+    local sender = extra.sender
+    if member_id == sender then
+      return send_large_msg("channel#id"..channel_id, "Leave using kickme command")
+    end
+		if is_momod2(member_id, channel_id) and not is_admin2(sender) then
+			   return send_large_msg("channel#id"..channel_id, "You can't kick mods/owner/admins")
+    end
+    if is_admin2(member_id) then
+         return send_large_msg("channel#id"..channel_id, "You can't kick other admins")
+    end
+		kick_user(user_id, channel_id)
+	elseif get_cmd == "setadmin" then
+		local user_id = "user#id"..result.peer_id
+		local channel_id = extra.channel
+		channel_set_admin(channel_id, user_id, ok_cb, false)
+		if result.username then
+			text = "@"..result.username.." has been set as an admin"
+			send_large_msg(channel_id, text)
+		else
+			text = "@"..result.peer_id.." has been set as an admin"
+			send_large_msg(channel_id, text)
+		end
+	elseif get_cmd == "setowner" then
+		local receiver = extra.channel
+		local channel = string.gsub(receiver, 'channel#id', '')
+		local from_id = extra.from_id
+		local group_owner = data[tostring(channel)]['set_owner']
+		if group_owner then
+			local user = "user#id"..group_owner
+			if not is_admin2(group_owner) and not is_support(group_owner) then
+				channel_demote(receiver, user, ok_cb, false)
+			end
+			local user_id = "user#id"..result.peer_id
+			channel_set_admin(receiver, user_id, ok_cb, false)
+			data[tostring(channel)]['set_owner'] = tostring(result.peer_id)
+			save_data(_config.moderation.data, data)
+			savelog(channel, name_log.." ["..from_id.."] set ["..result.peer_id.."] as owner by username")
+		if result.username then
+			text = member_username.." [ "..result.peer_id.." ] added as owner"
+		else
+			text = "[ "..result.peer_id.." ] added as owner"
+		end
+		send_large_msg(receiver, text)
+  end]]
+	elseif get_cmd == "رفع ادمن" then
+		local receiver = extra.channel
+		local user_id = result.peer_id
+		--local user = "user#id"..result.peer_id
+		promote2(receiver, member_username, user_id)
+		--channel_set_mod(receiver, user, ok_cb, false)
+	elseif get_cmd == "تنزيل ادمن" then
+		local receiver = extra.channel
+		local user_id = result.peer_id
+		local user = "user#id"..result.peer_id
+		demote2(receiver, member_username, user_id)
+	elseif get_cmd == "تنزيل اداري" then
+		local user_id = "user#id"..result.peer_id
+		local channel_id = extra.channel
+		if is_admin2(result.peer_id) then
+			return send_large_msg(channel_id, "لآ تمسَلت بكَيفكَ لآَ يمكَنَكَ تنزَيل أدأريَ 😂")
+		end
+		channel_demote(channel_id, user_id, ok_cb, false)
+		if result.username then
+			text = "@"..result.username.." خطـيهَ تمَ تنزيله 😢 منْ ألآَدأرهَ لتبجي جرَأَرهَ كلـبيَ 💔"
+			send_large_msg(channel_id, text)
+		else
+			text = "@"..result.peer_id.." خطـيهَ تمَ تنزيله 😢 منْ ألآَدأرهَ لتبجي جرَأَرهَ كلـبيَ 💔"
+			send_large_msg(channel_id, text)
+		end
+		local receiver = extra.channel
+		local user_id = result.peer_id
+		demote_admin(receiver, member_username, user_id)
+	elseif get_cmd == 'mute_user' then
+		local user_id = result.peer_id
+		local receiver = extra.receiver
+		local chat_id = string.gsub(receiver, 'channel#id', '')
+		if is_muted_user(chat_id, user_id) then
+			unmute_user(chat_id, user_id)
+			send_large_msg(receiver, " ["..user_id.."] removed from muted user list")
+		elseif is_owner(extra.msg) then
+			mute_user(chat_id, user_id)
+			send_large_msg(receiver, " ["..user_id.."] added to muted user list")
+		end
+	end
+end
+--End resolve username actions
+
+--Begin non-channel_invite username actions
+local function in_channel_cb(cb_extra, success, result)
+  local get_cmd = cb_extra.get_cmd
+  local receiver = cb_extra.receiver
+  local msg = cb_extra.msg
+  local data = load_data(_config.moderation.data)
+  local print_name = user_print_name(cb_extra.msg.from):gsub("‮", "")
+  local name_log = print_name:gsub("_", " ")
+  local member = cb_extra.username
+  local memberid = cb_extra.user_id
+  if member then
+    text = 'لايوجد عضو @'..member..' في هاذه المجموعه.'
+  else
+    text = 'لايوجد عضو  ['..memberid..'] في هاذه المجموعه.'
+  end
+if get_cmd == "channel_block" then
+  for k,v in pairs(result) do
+    vusername = v.username
+    vpeer_id = tostring(v.peer_id)
+    if vusername == member or vpeer_id == memberid then
+     local user_id = v.peer_id
+     local channel_id = cb_extra.msg.to.id
+     local sender = cb_extra.msg.from.id
+      if user_id == sender then
+        return send_large_msg("channel#id"..channel_id, "Leave using kickme command")
+      end
+      if is_momod2(user_id, channel_id) and not is_admin2(sender) then
+        return send_large_msg("channel#id"..channel_id, "❌ لاتمسلت بكيفك لايمكنك طرد الادمن أو المديرَ❗️")
+      end
+      if is_admin2(user_id) then
+        return send_large_msg("channel#id"..channel_id, "❌ لا تمسلت  بكيفك لايمكنك طرد الاداري❗️")
+      end
+      if v.username then
+        text = ""
+        savelog(msg.to.id, name_log.." ["..msg.from.id.."] kicked: @"..v.username.." ["..v.peer_id.."]")
+      else
+        text = ""
+        savelog(msg.to.id, name_log.." ["..msg.from.id.."] kicked: ["..v.peer_id.."]")
+      end
+      kick_user(user_id, channel_id)
+      return
+    end
+  end
+elseif get_cmd == "رفع اداري" then
+   for k,v in pairs(result) do
+    vusername = v.username
+    vpeer_id = tostring(v.peer_id)
+    if vusername == member or vpeer_id == memberid then
+      local user_id = "user#id"..v.peer_id
+      local channel_id = "channel#id"..cb_extra.msg.to.id
+      channel_set_admin(channel_id, user_id, ok_cb, false)
+      if v.username then
+        text = "@"..v.username.." ["..v.peer_id.."] بَعـدَ شـتريَدْ 😍 منَ ربـَكَ تَمَ رفعَكَ فَي ألآَدرهَ 💪"
+        savelog(msg.to.id, name_log.." ["..msg.from.id.."] set admin @"..v.username.." ["..v.peer_id.."]")
+      else
+        text = "["..v.peer_id.."] بَعـدَ شـتريَدْ 😍 منَ ربـَكَ تَمَ رفعَكَ فَي ألآَدرهَ 💪"
+        savelog(msg.to.id, name_log.." ["..msg.from.id.."] set admin "..v.peer_id)
+      end
+	  if v.username then
+		member_username = "@"..v.username
+	  else
+		member_username = string.gsub(v.print_name, '_', ' ')
+	  end
+		local receiver = channel_id
+		local user_id = v.peer_id
+		promote_admin(receiver, member_username, user_id)
+
+    end
+    send_large_msg(channel_id, text)
+    return
+ end
+ elseif get_cmd == 'رفع المدير' then
+	for k,v in pairs(result) do
+		vusername = v.username
+		vpeer_id = tostring(v.peer_id)
+		if vusername == member or vpeer_id == memberid then
+			local channel = string.gsub(receiver, 'channel#id', '')
+			local from_id = cb_extra.msg.from.id
+			local group_owner = data[tostring(channel)]['set_owner']
+			if group_owner then
+				if not is_admin2(tonumber(group_owner)) and not is_support(tonumber(group_owner)) then
+					local user = "user#id"..group_owner
+					channel_demote(receiver, user, ok_cb, false)
+				end
+					local user_id = "user#id"..v.peer_id
+					channel_set_admin(receiver, user_id, ok_cb, false)
+					data[tostring(channel)]['set_owner'] = tostring(v.peer_id)
+					save_data(_config.moderation.data, data)
+					savelog(channel, name_log.."["..from_id.."] set ["..v.peer_id.."] as owner by username")
+				if result.username then
+					text = member_username.." ["..v.peer_id.."] ولآَ يـهمَكَ تمَ ✔️ رفعـكَ مـديـر 👍 سفنجهَ كلـبيَ 💔"
+				else
+					text = "["..v.peer_id.."] ولآَ يـهمَكَ تمَ ✔️ رفعـكَ مـديـر 👍 سفنجهَ كلـبيَ 💔"
+				end
+			end
+		elseif memberid and vusername ~= member and vpeer_id ~= memberid then
+			local channel = string.gsub(receiver, 'channel#id', '')
+			local from_id = cb_extra.msg.from.id
+			local group_owner = data[tostring(channel)]['set_owner']
+			if group_owner then
+				if not is_admin2(tonumber(group_owner)) and not is_support(tonumber(group_owner)) then
+					local user = "user#id"..group_owner
+					channel_demote(receiver, user, ok_cb, false)
+				end
+				data[tostring(channel)]['set_owner'] = tostring(memberid)
+				save_data(_config.moderation.data, data)
+				savelog(channel, name_log.."["..from_id.."] set ["..memberid.."] as owner by username")
+				text = "["..memberid.."] ولآَ يـهمَكَ تمَ ✔️ رفعـكَ مـديـر 👍 سفنجهَ كلـبيَ 💔"
+			end
+		end
+	end
+ end
+send_large_msg(receiver, text)
+end
+--End non-channel_invite username actions
+
+--'Set supergroup photo' function
+local function set_supergroup_photo(msg, success, result)
+  local data = load_data(_config.moderation.data)
+  if not data[tostring(msg.to.id)] then
+      return
+  end
+  local receiver = get_receiver(msg)
+  if success then
+    local file = 'data/photos/channel_photo_'..msg.to.id..'.jpg'
+    print('File downloaded to:', result)
+    os.rename(result, file) 
