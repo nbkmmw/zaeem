@@ -437,3 +437,257 @@ local function set_rulesmod(msg, data, target)
   data[tostring(target)][data_cat] = rules
   save_data(_config.moderation.data, data)
   return 'تم ✔️ وضع  القوانين 📋 في المجموعة 👥' 
+end
+
+--'Get supergroup rules' function
+local function get_rules(msg, data)
+  local data_cat = 'rules'
+  if not data[tostring(msg.to.id)][data_cat] then
+    return 'ليس ❌ هناك قوانين 📋 في المجموعة 👥'
+  end
+  local rules = data[tostring(msg.to.id)][data_cat]
+  local group_name = data[tostring(msg.to.id)]['settings']['set_name']
+  local rules = group_name..' 📋 قوانين مجموعة ♨️\n\n'..rules:gsub("/n", " ")
+  return rules
+end
+
+--Set supergroup to public or not public function
+local function set_public_membermod(msg, data, target)
+  if not is_momod(msg) then
+    return "❌ 😠 لا تلعب بكيفك  فقط  المدير والادمن يفعل ذالك❗️✋🏻"
+  end
+  local group_public_lock = data[tostring(target)]['settings']['public']
+  local long_id = data[tostring(target)]['long_id']
+  if not long_id then
+	data[tostring(target)]['long_id'] = msg.to.peer_id 
+	save_data(_config.moderation.data, data)
+  end
+  if group_public_lock == 'yes' then
+    return '😠 المجموعه عامه بالفعل ✔️'
+  else
+    data[tostring(target)]['settings']['public'] = 'yes'
+    save_data(_config.moderation.data, data)
+  end
+  return '👥 المجموعه الان اصبحت عامه ♨️✔️'
+end
+
+local function unset_public_membermod(msg, data, target)
+  if not is_momod(msg) then
+    return
+  end
+  local group_public_lock = data[tostring(target)]['settings']['public']
+  local long_id = data[tostring(target)]['long_id']
+  if not long_id then
+	data[tostring(target)]['long_id'] = msg.to.peer_id 
+	save_data(_config.moderation.data, data)
+  end
+  if group_public_lock == 'no' then
+    return '👥المجموعه ❌ ليست عامه ❗️'
+  else
+    data[tostring(target)]['settings']['public'] = 'no'
+	data[tostring(target)]['long_id'] = msg.to.long_id 
+    save_data(_config.moderation.data, data)
+    return '👥 المجموعه الان ليست عامه ❗️'
+  end
+end
+
+--Show supergroup settings; function
+function show_supergroup_settingsmod(msg, target)
+ 	if not is_momod(msg) then
+    	return
+  	end
+	local data = load_data(_config.moderation.data)
+    if data[tostring(target)] then
+     	if data[tostring(target)]['settings']['flood_msg_max'] then
+        	NUM_MSG_MAX = tonumber(data[tostring(target)]['settings']['flood_msg_max'])
+        	print('custom'..NUM_MSG_MAX)
+      	else
+        	NUM_MSG_MAX = 5
+      	end
+    end
+	if data[tostring(target)]['settings'] then
+		if not data[tostring(target)]['settings']['public'] then
+			data[tostring(target)]['settings']['public'] = 'no'
+		end
+	end
+	if data[tostring(target)]['settings'] then
+		if not data[tostring(target)]['settings']['lock_rtl'] then
+			data[tostring(target)]['settings']['lock_rtl'] = 'no'
+		end
+	end
+	if data[tostring(target)]['settings'] then
+		if not data[tostring(target)]['settings']['lock_member'] then
+			data[tostring(target)]['settings']['lock_member'] = 'no'
+		end
+	end
+  local settings = data[tostring(target)]['settings']
+  local text = "⚙ اعدادات المجموعه 👥\n❣ قفل الروابط : "..settings.lock_link.."\n❣ قفل التكرار: "..settings.flood.."\n❣ عدد التكرار  : "..NUM_MSG_MAX.."\n❣ قفل الكلايش الطويله: "..settings.lock_spam.."\n❣ قفل اللغه العربيه: "..settings.lock_arabic.."\n❣ قفل الاضافه: "..settings.lock_member.."\n❣ قفل المغادره: "..settings.lock_rtl.."\n❣ قفل الملصقات: "..settings.lock_sticker.."\n❣ المراقبه: "..settings.public.."\n❣ قفل جميع الاعدادات: "..settings.strict
+  return text
+end
+
+local function promote_admin(receiver, member_username, user_id)
+  local data = load_data(_config.moderation.data)
+  local group = string.gsub(receiver, 'channel#id', '')
+  local member_tag_username = string.gsub(member_username, '@', '(at)')
+  if not data[group] then
+    return
+  end
+  if data[group]['moderators'][tostring(user_id)] then
+    return send_large_msg(receiver, member_username..' 😠 لتلح هوه بالفعل ضمن الاداره 😈.')
+  end
+  data[group]['moderators'][tostring(user_id)] = member_tag_username
+  save_data(_config.moderation.data, data)
+end
+
+local function demote_admin(receiver, member_username, user_id)
+  local data = load_data(_config.moderation.data)
+  local group = string.gsub(receiver, 'channel#id', '')
+  if not data[group] then
+    return
+  end
+  if not data[group]['moderators'][tostring(user_id)] then
+    return send_large_msg(receiver, member_tag_username..' 😠✋🏻 لـتَلحَ هَوَهَ بأَلفعَل ضمَنْ ألآَعضأء 👿.')
+  end
+  data[group]['moderators'][tostring(user_id)] = nil
+  save_data(_config.moderation.data, data)
+end
+
+local function promote2(receiver, member_username, user_id)
+  local data = load_data(_config.moderation.data)
+  local group = string.gsub(receiver, 'channel#id', '')
+  local member_tag_username = string.gsub(member_username, '@', '(at)')
+  if not data[group] then
+    return send_large_msg(receiver, '✋🏻❌ الَمَجموَعهْ ليستَ فعأَلهَ ❗️.')
+  end
+  if data[group]['moderators'][tostring(user_id)] then
+    return send_large_msg(receiver, member_username..' 😠 لتلَحَ هَوْهَ بألفعلَ ضمََنَ أَلآَدمَنِيـَهْ 😈.')
+  end
+  data[group]['moderators'][tostring(user_id)] = member_tag_username
+  save_data(_config.moderation.data, data)
+  send_large_msg(receiver, member_username..' رفَعـوَكَ أدمـن 😉🎓 شدَ حيـلكَ 💪🔅.')
+end
+
+local function demote2(receiver, member_username, user_id)
+  local data = load_data(_config.moderation.data)
+  local group = string.gsub(receiver, 'channel#id', '')
+  if not data[group] then
+    return send_large_msg(receiver, '✋🏻❌ الَمَجموَعهْ ليستَ فعأَلهَ ❗️.')
+  end
+  if not data[group]['moderators'][tostring(user_id)] then
+    return send_large_msg(receiver, member_tag_username..' 😠✋🏻 لـتَلحَ هَوَهَ بأَلفعَل ضمَنْ ألآَعضأء 👿.')
+  end
+  data[group]['moderators'][tostring(user_id)] = nil
+  save_data(_config.moderation.data, data)
+  send_large_msg(receiver, member_username..' خِطيَهْ نَزلَوَ منَ ألآَدمنَيِهَ 💔 لتَبجي يَـَأ لمَعهَ عينَي😢.')
+end
+
+local function modlist(msg)
+  local data = load_data(_config.moderation.data)
+  local groups = "groups"
+  if not data[tostring(groups)][tostring(msg.to.id)] then
+    return '✋🏻❌ الَمَجموَعهْ ليستَ فعأَلهَ ❗️.'
+  end
+  -- determine if table is empty
+  if next(data[tostring(msg.to.id)]['moderators']) == nil then
+    return '❌ لآَ يِـوَجـدَ أَدمنـيِهَ حـأليـأَ ❗️.'
+  end
+  local i = 1
+  local message = '\n💢 قأئمَهَ ألآَدمــنيِهَ ⁉️ ' .. string.gsub(msg.to.print_name, '_', ' ') .. ':\n'
+  for k,v in pairs(data[tostring(msg.to.id)]['moderators']) do
+    message = message ..i..' - '..v..' [' ..k.. '] \n'
+    i = i + 1
+  end
+  return message
+end
+
+-- Start by reply actions
+function get_message_callback(extra, success, result)
+	local get_cmd = extra.get_cmd
+	local msg = extra.msg
+	local data = load_data(_config.moderation.data)
+	local print_name = user_print_name(msg.from):gsub("‮", "")
+	local name_log = print_name:gsub("_", " ")
+    if get_cmd == "ايدي" and not result.action then
+		local channel = 'channel#id'..result.to.peer_id
+		savelog(msg.to.id, name_log.." ["..msg.from.id.."] obtained id for: ["..result.from.peer_id.."]")
+		id1 = send_large_msg(channel, result.from.peer_id)
+	elseif get_cmd == 'ايدي' and result.action then
+		local action = result.action.type
+		if action == 'chat_add_user' or action == 'chat_del_user' or action == 'chat_rename' or action == 'chat_change_photo' then
+			if result.action.user then
+				user_id = result.action.user.peer_id
+			else
+				user_id = result.peer_id
+			end
+			local channel = 'channel#id'..result.to.peer_id
+			savelog(msg.to.id, name_log.." ["..msg.from.id.."] obtained id by service msg for: ["..user_id.."]")
+			id1 = send_large_msg(channel, user_id)
+		end
+    elseif get_cmd == "idfrom" then
+		local channel = 'channel#id'..result.to.peer_id
+		savelog(msg.to.id, name_log.." ["..msg.from.id.."] obtained id for msg fwd from: ["..result.fwd_from.peer_id.."]")
+		id2 = send_large_msg(channel, result.fwd_from.peer_id)
+    elseif get_cmd == 'channel_block' and not result.action then
+		local member_id = result.from.peer_id
+		local channel_id = result.to.peer_id
+    if member_id == msg.from.id then
+      return send_large_msg("channel#id"..channel_id, "Leave using kickme command")
+    end
+    if is_momod2(member_id, channel_id) and not is_admin2(msg.from.id) then
+			   return send_large_msg("channel#id"..channel_id, "❌ لاتمسلت بكيفك لايمكنك طرد الادمن أو المديرَ❗️")
+    end
+    if is_admin2(member_id) then
+         return send_large_msg("channel#id"..channel_id, "❌ لا تمسلت  بكيفك لايمكنك طرد الاداري❗️")
+    end
+		--savelog(msg.to.id, name_log.." ["..msg.from.id.."] kicked: ["..user_id.."] by reply")
+		kick_user(member_id, channel_id)
+	elseif get_cmd == 'channel_block' and result.action and result.action.type == 'chat_add_user' then
+		local user_id = result.action.user.peer_id
+		local channel_id = result.to.peer_id
+    if member_id == msg.from.id then
+      return send_large_msg("channel#id"..channel_id, "Leave using kickme command")
+    end
+    if is_momod2(member_id, channel_id) and not is_admin2(msg.from.id) then
+			   return send_large_msg("channel#id"..channel_id, "❌ لاتمسلت بكيفك لايمكنك طرد الادمن أو المديرَ❗️")
+    end
+    if is_admin2(member_id) then
+         return send_large_msg("channel#id"..channel_id, "❌ لا تمسلت  بكيفك لايمكنك طرد الاداري❗️")
+    end
+		savelog(msg.to.id, name_log.." ["..msg.from.id.."] kicked: ["..user_id.."] by reply to sev. msg.")
+		kick_user(user_id, channel_id)
+	elseif get_cmd == "مسح" then
+		delete_msg(result.id, ok_cb, false)
+		savelog(msg.to.id, name_log.." ["..msg.from.id.."] deleted a message by reply")
+	elseif get_cmd == "رفع اداري" then
+		local user_id = result.from.peer_id
+		local channel_id = "channel#id"..result.to.peer_id
+		channel_set_admin(channel_id, "user#id"..user_id, ok_cb, false)
+		if result.from.username then
+			text = "@"..result.from.username.." بَعـدَ شـتريَدْ 😍 مَنَ ربـَكَ تَمَ رفعَكَ فَي ألآَدرهَ 💪"
+		else
+			text = "[ "..user_id.." ]بَعـدَ شـتريَدْ 😍 مَنَ ربـَكَ تَمَ رفعَكَ فَي ألآَدرهَ 💪"
+		end
+		savelog(msg.to.id, name_log.." ["..msg.from.id.."] set: ["..user_id.."] as admin by reply")
+		send_large_msg(channel_id, text)
+	elseif get_cmd == "تنزيل اداري" then
+		local user_id = result.from.peer_id
+		local channel_id = "channel#id"..result.to.peer_id
+		if is_admin2(result.from.peer_id) then
+			return send_large_msg(channel_id, "✋🏻❌ لآ تمسَلت بكَيفكَ لآَ يمكَنَكَ تنزَيل أدأريَ 😂")
+		end
+		channel_demote(channel_id, "user#id"..user_id, ok_cb, false)
+		if result.from.username then
+			text = "@"..result.from.username.." خطـيهَ تمَ تنزيله 😢 مَنْ ألآَدأرهَ لتبجي جرَأَرهَ كلـبيَ 💔"
+		else
+			text = "[ "..user_id.." ] خطـيهَ تمَ تنزيله 😢 مَنْ ألآَدأرهَ لتبجي جرَأَرهَ كلـبيَ 💔"
+		end
+		savelog(msg.to.id, name_log.." ["..msg.from.id.."] demoted: ["..user_id.."] from admin by reply")
+		send_large_msg(channel_id, text)
+	elseif get_cmd == "رفع المدير" then
+		local group_owner = data[tostring(result.to.peer_id)]['set_owner']
+		if group_owner then
+		local channel_id = 'channel#id'..result.to.peer_id
+			if not is_admin2(tonumber(group_owner)) and not is_support(tonumber(group_owner)) then
+				local user = "user#id"..group_owner
+				channel_demote(channel_id, user, ok_cb, false)
+			end 
